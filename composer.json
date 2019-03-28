@@ -2,7 +2,7 @@
     "name": "camuthig/jigsaw-blog-default-categories",
     "description": "An event listener to generate default category pages on a Jigsaw blog",
     "type": "library",
-    "license": "Apache-2.0",
+    "license": "MIT",
     "authors": [
         {
             "name": "Chris Muthig",
