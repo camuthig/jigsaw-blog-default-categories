@@ -6,7 +6,7 @@ use TightenCo\Jigsaw\Collection\Collection;
 use TightenCo\Jigsaw\Jigsaw;
 use TightenCo\Jigsaw\Loaders\DataLoader;
 
-class GenerateCategories
+class GenerateDefaultCategories
 {
     public function handle(Jigsaw $jigsaw)
     {
