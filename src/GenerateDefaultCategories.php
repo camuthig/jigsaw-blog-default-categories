@@ -2,6 +2,7 @@
 
 namespace Camuthig\Jigsaw\DefaultCategories;
 
+use Illuminate\Support\Collection as BaseCollection;
 use TightenCo\Jigsaw\Collection\Collection;
 use TightenCo\Jigsaw\Jigsaw;
 use TightenCo\Jigsaw\Loaders\DataLoader;
@@ -10,26 +11,30 @@ class GenerateDefaultCategories
 {
     public function handle(Jigsaw $jigsaw)
     {
-        $defaultCategoryCollection = $this->getMissingCategoryPages($jigsaw);
+        $posts = $jigsaw->getCollection('posts');
+
+        if (!$posts) {
+            return;
+        }
+
+        $definedCategories = $jigsaw->getCollection('categories') ?? collect();
+
+        $defaultCategoryCollection = $this->getMissingCategoryPages($posts, $definedCategories);
 
         $this->reloadWithDefaultCategories($jigsaw, $defaultCategoryCollection);
     }
 
-    private function getMissingCategoryPages(Jigsaw $jigsaw)
+    private function getMissingCategoryPages(BaseCollection $posts, BaseCollection $definedCategories)
     {
-        /** @var Collection $posts */
-        $posts = $jigsaw->getCollection('posts');
-        /** @var Collection $categories */
-        $categories = $jigsaw->getCollection('categories');
-
         $items = $posts
             ->map(function ($p) {
                 return $p->categories;
             })
+            ->filter()
             ->flatten()
             ->unique()
-            ->diff($categories->keys())
-            ->map(function (string $category) use ($categories, $posts) {
+            ->diff($definedCategories)
+            ->map(function (string $category) {
                 return [
                     'extends' => '_layouts.category',
                     'filename' => $category,
@@ -38,13 +43,13 @@ class GenerateDefaultCategories
             });
 
         return [
-                'path' => '/blog/categories/{filename}',
-                'items' => $items,
-                'posts' => function ($page, $allPosts) {
-                    return $allPosts->filter(function ($post) use ($page) {
-                        return $post->categories ? in_array($page->getFilename(), $post->categories, true) : false;
-                    });
-                },
+            'path' => '/blog/categories/{filename}',
+            'items' => $items,
+            'posts' => function ($page, $allPosts) {
+                return $allPosts->filter(function ($post) use ($page) {
+                    return $post->categories ? in_array($page->getFilename(), $post->categories, true) : false;
+                });
+            },
         ];
     }
 
