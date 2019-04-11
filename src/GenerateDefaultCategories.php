@@ -2,8 +2,6 @@
 
 namespace Camuthig\Jigsaw\DefaultCategories;
 
-use Illuminate\Support\Collection as BaseCollection;
-use TightenCo\Jigsaw\Collection\Collection;
 use TightenCo\Jigsaw\Jigsaw;
 use TightenCo\Jigsaw\Loaders\DataLoader;
 
@@ -11,21 +9,26 @@ class GenerateDefaultCategories
 {
     public function handle(Jigsaw $jigsaw)
     {
-        $posts = $jigsaw->getCollection('posts');
+        $defaultCategoryCollection = $this->getDefaultCategoryPages($jigsaw);
 
-        if (!$posts) {
+        if (!$defaultCategoryCollection) {
             return;
         }
-
-        $definedCategories = $jigsaw->getCollection('categories') ?? collect();
-
-        $defaultCategoryCollection = $this->getMissingCategoryPages($posts, $definedCategories);
 
         $this->reloadWithDefaultCategories($jigsaw, $defaultCategoryCollection);
     }
 
-    private function getMissingCategoryPages(BaseCollection $posts, BaseCollection $definedCategories)
+    /**
+     * @param Jigsaw $jigsaw
+     *
+     * @return array|null
+     */
+    private function getDefaultCategoryPages(Jigsaw $jigsaw)
     {
+        $posts = $jigsaw->getCollection('posts') ?? collect();
+        $definedCategories = $jigsaw->getCollection('categories') ?? collect();
+        $defaultCategoryConfig = $jigsaw->getConfig('defaultCategories') ?? [];
+
         $items = $posts
             ->map(function ($p) {
                 return $p->categories;
@@ -34,16 +37,20 @@ class GenerateDefaultCategories
             ->flatten()
             ->unique()
             ->diff($definedCategories)
-            ->map(function (string $category) {
+            ->map(function (string $category) use ($defaultCategoryConfig) {
                 return [
-                    'extends' => '_layouts.category',
+                    'extends' => $defaultCategoryConfig['extends'] ?? '_layouts.category',
                     'filename' => $category,
                     'title' => "Category: $category",
                 ];
             });
 
+        if ($items->isEmpty()) {
+            return null;
+        }
+
         return [
-            'path' => '/blog/categories/{filename}',
+            'path' => $defaultCategoryConfig['path'] ?? '/blog/categories/{filename}',
             'items' => $items,
             'posts' => function ($page, $allPosts) {
                 return $allPosts->filter(function ($post) use ($page) {
@@ -53,6 +60,10 @@ class GenerateDefaultCategories
         ];
     }
 
+    /**
+     * @param Jigsaw $jigsaw
+     * @param array $defaultCategoryCollection
+     */
     private function reloadWithDefaultCategories(Jigsaw $jigsaw, array $defaultCategoryCollection)
     {
         /** @var DataLoader $dataLoader */
