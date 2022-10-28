@@ -3,6 +3,7 @@
 namespace Camuthig\Jigsaw\DefaultCategories;
 
 use TightenCo\Jigsaw\Jigsaw;
+use TightenCo\Jigsaw\Loaders\CollectionRemoteItemLoader;
 use TightenCo\Jigsaw\Loaders\DataLoader;
 
 class GenerateDefaultCategories
@@ -72,7 +73,9 @@ class GenerateDefaultCategories
 
         $siteData = $dataLoader->loadSiteData($jigsaw->app->config);
 
-        $jigsaw->remoteItemLoader->write($siteData->collections, $jigsaw->getSourcePath());
+        $remoteItemLoader = $jigsaw->app->get(CollectionRemoteItemLoader::class);
+        $remoteItemLoader->write($siteData->collections, $jigsaw->getSourcePath());
+
         $collectionData = $dataLoader->loadCollectionData($siteData, $jigsaw->getSourcePath());
         $jigsaw->getSiteData()->addCollectionData($collectionData);
     }
